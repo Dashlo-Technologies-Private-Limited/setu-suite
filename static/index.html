@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>PROJECT SETU • Smart Enterprise Transfer & Utilisation</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+  
+  <!-- Barcode & OCR Engines -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #070a0f;
+      --bg-surface: #0e1420;
+      --bg-surface-elevated: #151d2e;
+      --border-line: rgba(203, 213, 225, 0.12);
+      --border-active: rgba(0, 240, 255, 0.4);
+      
+      /* New High-Contrast Titanium & Aurora Palette */
+      --cyan-neon: #00f0ff;
+      --cyan-glow: rgba(0, 240, 255, 0.25);
+      --emerald-accent: #10b981;
+      --amber-alert: #f59e0b;
+      --ruby-danger: #f43f5e;
+      --zinc-metal: #cbd5e1;
+      --text-bright: #ffffff;
+      --text-sub: #94a3b8;
+      
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+      --font-heading: 'Space Grotesk', sans-serif;
+      --font-mono: 'Fira Code', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-body); }
+    body { background: var(--bg-dark); color: var(--text-bright); min-height: 100vh; overflow-x: hidden; }
+
+    /* ================= 1. DEDICATED LIVE LOGO HERO STAGE ================= */
+    #view-landing {
+      position: fixed; inset: 0; z-index: 1000; background: radial-gradient(circle at center, #101827 0%, #05070a 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center;
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    
+    .live-logo-canvas-wrap {
+      width: 220px; height: 220px; position: relative; margin-bottom: 24px;
+      filter: drop-shadow(0 0 25px var(--cyan-glow));
+    }
+    
+    .orbit-ring {
+      transform-origin: 100px 100px;
+      animation: rotateRing 20s linear infinite;
+    }
+    .orbit-counter {
+      transform-origin: 100px 100px;
+      animation: rotateRing 30s linear infinite reverse;
+    }
+    .pulse-energy {
+      animation: corePulse 3s ease-in-out infinite;
+    }
+
+    @keyframes rotateRing { to { transform: rotate(360deg); } }
+    @keyframes corePulse {
+      0%, 100% { opacity: 0.5; transform: scale(0.98); }
+      50% { opacity: 1; transform: scale(1.03); filter: drop-shadow(0 0 12px var(--cyan-neon)); }
+    }
+
+    .hero-title {
+      font-family: var(--font-heading); font-size: 3rem; font-weight: 800; letter-spacing: 3px;
+      background: linear-gradient(135deg, #ffffff 30%, var(--cyan-neon) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px;
+    }
+    .hero-acronym-badge {
+      display: inline-flex; align-items: center; gap: 8px; padding: 6px 18px; border-radius: 30px;
+      background: rgba(0, 240, 255, 0.08); border: 1px solid var(--border-active);
+      color: var(--cyan-neon); font-family: var(--font-mono); font-size: 0.85rem; font-weight: 600;
+      letter-spacing: 1.2px; margin-bottom: 18px;
+    }
+    .hero-subtitle {
+      max-width: 580px; color: var(--text-sub); font-size: 0.95rem; line-height: 1.6; margin-bottom: 32px;
+    }
+
+    .btn-enter-gateway {
+      padding: 16px 40px; border-radius: 12px; border: none; font-family: var(--font-heading);
+      font-size: 1rem; font-weight: 700; letter-spacing: 1px; cursor: pointer; color: #000;
+      background: linear-gradient(135deg, var(--cyan-neon) 0%, #00b4d8 100%);
+      box-shadow: 0 10px 30px -5px var(--cyan-glow), 0 0 20px rgba(0, 240, 255, 0.4);
+      transition: all 0.25s ease;
+    }
+    .btn-enter-gateway:hover {
+      transform: translateY(-2px) scale(1.02); box-shadow: 0 15px 40px -5px var(--cyan-glow), 0 0 30px var(--cyan-neon);
+    }
+
+    /* ================= 2. AUTHENTICATION (LOGIN / SIGNUP) ================= */
+    #view-auth {
+      display: none; min-height: 100vh; align-items: center; justify-content: center;
+      padding: 24px; position: relative; z-index: 10;
+    }
+    .auth-card {
+      width: 100%; max-width: 480px; background: var(--bg-surface);
+      border: 1px solid var(--border-line); border-radius: 20px; padding: 36px 32px;
+      backdrop-filter: blur(20px); box-shadow: 0 25px 60px rgba(0,0,0,0.6);
+      position: relative; overflow: hidden;
+    }
+    .auth-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, transparent, var(--cyan-neon), var(--emerald-accent), transparent);
+    }
+
+    .auth-tabs {
+      display: flex; background: rgba(0,0,0,0.35); padding: 4px; border-radius: 10px;
+      border: 1px solid var(--border-line); margin-bottom: 22px;
+    }
+    .auth-tab-btn {
+      flex: 1; padding: 10px; border: none; background: transparent; color: var(--text-sub);
+      font-weight: 600; font-size: 0.85rem; border-radius: 8px; cursor: pointer; transition: 0.2s;
+    }
+    .auth-tab-btn.active {
+      background: var(--bg-surface-elevated); color: #fff; border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .form-group { margin-bottom: 16px; text-align: left; }
+    label { display: block; font-size: 0.72rem; font-weight: 700; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+    input, select, textarea {
+      width: 100%; background: #070a0f; border: 1px solid var(--border-line); border-radius: 8px;
+      padding: 12px 14px; color: #fff; font-size: 0.92rem; transition: all 0.2s;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none; border-color: var(--cyan-neon); box-shadow: 0 0 12px var(--cyan-glow);
+    }
+    input[readonly], textarea[readonly] { background: rgba(0,0,0,0.2); color: var(--text-sub); }
+    .row { display: flex; gap: 10px; }
+    .col { flex: 1; }
+
+    .btn-auth-action {
+      width: 100%; padding: 14px; border-radius: 8px; border: none; font-weight: 700;
+      font-size: 0.95rem; cursor: pointer; color: #000; background: var(--cyan-neon);
+      margin-top: 10px; transition: 0.2s;
+    }
+    .btn-auth-action:hover { filter: brightness(1.1); box-shadow: 0 0 15px var(--cyan-glow); }
+
+    /* ================= 3. APPLICATION WORKSPACE ================= */
+    #view-app { display: none; padding-bottom: 80px; position: relative; z-index: 10; }
+    header {
+      background: rgba(14, 20, 32, 0.9); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border-line);
+      padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100;
+    }
+    .brand-cluster { display: flex; align-items: center; gap: 12px; }
+    .mini-logo-box { width: 36px; height: 36px; }
+
+    .nav-bar {
+      display: flex; background: #080c13; border-bottom: 1px solid var(--border-line);
+      position: sticky; top: 65px; z-index: 90; overflow-x: auto; padding: 0 18px;
+    }
+    .nav-btn {
+      padding: 16px 18px; border: none; background: transparent; color: var(--text-sub);
+      font-size: 0.85rem; font-weight: 700; cursor: pointer; border-bottom: 3px solid transparent;
+      white-space: nowrap; transition: all 0.2s;
+    }
+    .nav-btn.active { color: var(--cyan-neon); border-bottom-color: var(--cyan-neon); background: rgba(0, 240, 255, 0.05); }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    .panel {
+      background: var(--bg-surface); border: 1px solid var(--border-line);
+      border-radius: 14px; padding: 20px; margin-bottom: 18px;
+    }
+    .panel-title { font-family: var(--font-heading); font-size: 1.05rem; font-weight: 700; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+
+    /* Universal Search Styling */
+    .search-input-field {
+      width: 100%; padding: 15px 18px; border-radius: 10px; border: 1px solid var(--cyan-neon);
+      background: #070a0f; color: #fff; font-size: 1rem; box-shadow: 0 0 15px rgba(0, 240, 255, 0.15);
+    }
+    .result-card {
+      background: var(--bg-surface-elevated); border: 1px solid var(--border-line);
+      border-radius: 10px; padding: 14px; margin-top: 12px; cursor: pointer; transition: 0.15s;
+    }
+    .result-card:hover { border-color: var(--cyan-neon); transform: translateX(3px); }
+
+    /* Operational Buttons */
+    .btn-act { padding: 12px 18px; border-radius: 8px; border: none; font-weight: 700; font-size: 0.88rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-primary { background: var(--cyan-neon); color: #000; }
+    .btn-emerald { background: var(--emerald-accent); color: #fff; }
+    .btn-amber { background: var(--amber-alert); color: #000; }
+    .btn-ruby { background: var(--ruby-danger); color: #fff; }
+    .btn-outline { background: transparent; border: 1px solid var(--border-line); color: #fff; }
+
+    /* KPI Metrics Cards */
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
+    @media (max-width: 900px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+    
+    .kpi-tile {
+      background: var(--bg-surface); border: 1px solid var(--border-line); border-radius: 12px;
+      padding: 16px; position: relative; overflow: hidden;
+    }
+    .kpi-tile::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--cyan-neon); }
+    .kpi-tile.emerald::before { background: var(--emerald-accent); }
+    .kpi-tile.amber::before { background: var(--amber-alert); }
+    .kpi-tile.ruby::before { background: var(--ruby-danger); }
+    
+    .kpi-label { font-size: 0.7rem; font-weight: 700; color: var(--text-sub); text-transform: uppercase; }
+    .kpi-value { font-family: var(--font-mono); font-size: 1.45rem; font-weight: 700; margin-top: 4px; }
+
+    /* Tables */
+    .table-responsive { overflow-x: auto; border: 1px solid var(--border-line); border-radius: 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    th { background: rgba(0,0,0,0.4); padding: 12px; color: var(--text-sub); text-align: left; border-bottom: 1px solid var(--border-line); }
+    td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+    tr:hover { background: rgba(255,255,255,0.02); }
+
+    .tag-badge { padding: 3px 8px; border-radius: 6px; font-size: 0.68rem; font-weight: 700; font-family: var(--font-mono); text-transform: uppercase; }
+    .tag-cyan { background: rgba(0, 240, 255, 0.15); color: var(--cyan-neon); border: 1px solid var(--border-active); }
+    .tag-emerald { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+    .tag-ruby { background: rgba(244, 63, 94, 0.15); color: #fb7185; }
+    .tag-amber { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+
+    #reader { border-radius: 10px; overflow: hidden; background: #000; border: 1px solid var(--border-active); }
+    #sig-canvas { border: 1px dashed var(--border-line); border-radius: 8px; width: 100%; height: 120px; background: rgba(0,0,0,0.5); touch-action: none; }
+  </style>
+</head>
+<body>
+
+  <!-- ================= 1. DEDICATED LIVE LOGO HERO STAGE ================= -->
+  <div id="view-landing">
+    
+    <!-- Next-Gen Live Vector Logo Engine -->
+    <div class="live-logo-canvas-wrap">
+      <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: 100%;">
+        <!-- Outer Kinetic Hexagonal Zinc Crystal Cell -->
+        <polygon class="orbit-ring" points="100,12 176,56 176,144 100,188 24,144 24,56" stroke="var(--border-line)" stroke-width="2.5" stroke-dasharray="8 6"/>
+        <polygon class="orbit-counter" points="100,24 165,62 165,138 100,176 35,138 35,62" stroke="var(--cyan-neon)" stroke-width="1.5" stroke-opacity="0.4"/>
+        
+        <!-- Live Inter-Cluster Suspension Bridges (Setu Arch Matrix) -->
+        <path d="M40 140 C 65 70, 135 70, 160 140" stroke="#00f0ff" stroke-width="6" stroke-linecap="round"/>
+        <path d="M55 140 C 75 90, 125 90, 145 140" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-dasharray="5 5"/>
+        
+        <!-- Neural NETRA Optical Reticle (Pulsing Vision Eye) -->
+        <circle cx="100" cy="82" r="22" stroke="#00f0ff" stroke-width="3.5" fill="#070a0f" class="pulse-energy"/>
+        <circle cx="100" cy="82" r="8" fill="#00f0ff"/>
+        
+        <!-- Crosshair Optical Targeting Brackets -->
+        <path d="M88 70 L88 64 L94 64" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+        <path d="M112 70 L112 64 L106 64" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+        <path d="M88 94 L88 100 L94 100" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+        <path d="M112 94 L112 100 L106 100" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+        
+        <!-- The 5 HZL Cluster Physical Node Anchors -->
+        <circle cx="40" cy="140" r="5" fill="#cbd5e1"/>
+        <circle cx="160" cy="140" r="5" fill="#cbd5e1"/>
+        <circle cx="100" cy="140" r="4" fill="#00f0ff"/>
+      </svg>
+    </div>
+
+    <h1 class="hero-title">PROJECT SETU</h1>
+    <div class="hero-acronym-badge">
+      <span>SMART ENTERPRISE TRANSFER & UTILISATION</span>
+    </div>
+
+    <p class="hero-subtitle">
+      AI-governed predictive inventory optimization, dynamic multi-variable buffer right-sizing, and edge computer vision (*SETU NETRA*) engineered for Hindustan Zinc Limited.
+    </p>
+
+    <!-- The Gateway Activation Trigger (Never Disappears Until User Clicks) -->
+    <button class="btn-enter-gateway" onclick="enterGatewayStage()">
+      INITIALIZE SETU GATEWAY &rarr;
+    </button>
+  </div>
+
+  <!-- ================= 2. AUTHENTICATION / ONBOARDING ================= -->
+  <div id="view-auth">
+    <div class="auth-card">
+      <div style="text-align: center; margin-bottom: 22px;">
+        <div style="font-family: var(--font-heading); font-size: 1.5rem; font-weight: 700; color: #fff;">SETU GATEWAY</div>
+        <p style="font-size: 0.75rem; color: var(--text-sub); margin-top: 2px;">SECURE ACCESS CONTROL & ONBOARDING</p>
+      </div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab-btn active" id="btn-login-tab" onclick="toggleAuthMode('login')">Account Login</button>
+        <button class="auth-tab-btn" id="btn-signup-tab" onclick="toggleAuthMode('signup')">New User Sign Up</button>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <form id="form-login" onsubmit="handleLoginSubmit(event)">
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="login-email" value="neha.pacholi@vedanta.co.in" required placeholder="user@vedanta.co.in" />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="login-password" value="••••••••••••" required placeholder="••••••••••••" />
+        </div>
+        <div class="form-group">
+          <label>Operational Role</label>
+          <select id="login-role" required>
+            <option value="SPOC / Inventory Planner">SPOC / Central Inventory Planner</option>
+            <option value="Plant Maintenance Engineer">Plant Maintenance Engineer</option>
+            <option value="Warehouse Dock Incharge">Warehouse Dock Incharge</option>
+            <option value="Cluster Logistics Head">Cluster Logistics Head</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-auth-action">Authorize Access</button>
+      </form>
+
+      <!-- SIGNUP FORM -->
+      <form id="form-signup" style="display: none;" onsubmit="handleSignupSubmit(event)">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="signup-name" required placeholder="e.g., Rajesh Sharma" />
+        </div>
+        <div class="row">
+          <div class="col form-group">
+            <label>Assigned Plant</label>
+            <select id="signup-plant" required>
+              <option value="Chanderiya">Chanderiya (CLZS)</option>
+              <option value="Dariba">Dariba (DSC)</option>
+              <option value="Agucha">Rampura Agucha (RAM)</option>
+              <option value="Zawar">Zawar Mines Complex</option>
+              <option value="Debari">Debari Smelter</option>
+            </select>
+          </div>
+          <div class="col form-group">
+            <label>System Role</label>
+            <select id="signup-role" required>
+              <option value="Plant Maintenance Engineer">Maintenance Eng.</option>
+              <option value="Warehouse Dock Incharge">Warehouse Lead</option>
+              <option value="SPOC / Inventory Planner">Inventory Planner</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Corporate Vedanta Email</label>
+          <input type="email" id="signup-email" required placeholder="user@vedanta.co.in" />
+        </div>
+        <div class="form-group">
+          <label>Security Password</label>
+          <input type="password" id="signup-password" required placeholder="Min. 8 chars" />
+        </div>
+        <div class="form-group">
+          <label>Email OTP Verification</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="signup-otp" maxlength="6" placeholder="Enter 6-digit OTP" style="font-family: var(--font-mono); letter-spacing: 2px;" required />
+            <button type="button" class="btn-act btn-primary" style="white-space: nowrap; padding: 10px 14px;" onclick="sendEmailOTP()">Send OTP</button>
+          </div>
+          <span id="otp-hint-msg" style="font-size: 0.7rem; color: var(--cyan-neon); margin-top: 4px; display: none;">OTP dispatched to your mailbox. (Demo Code: 492108)</span>
+        </div>
+        <button type="submit" class="btn-auth-action" style="background: var(--emerald-accent); color: #fff;">Verify & Provision Profile</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= 3. APPLICATION WORKSPACE ================= -->
+  <div id="view-app">
+    <header>
+      <div class="brand-cluster">
+        <div class="mini-logo-box">
+          <svg viewBox="0 0 100 100" fill="none" style="width: 100%; height: 100%;">
+            <polygon points="50,6 88,28 88,72 50,94 12,72 12,28" stroke="var(--cyan-neon)" stroke-width="4"/>
+            <path d="M22 68 C 34 38, 66 38, 78 68" stroke="#10b981" stroke-width="7"/>
+            <circle cx="50" cy="45" r="9" fill="var(--cyan-neon)"/>
+          </svg>
+        </div>
+        <div>
+          <div style="font-family: var(--font-heading); font-weight: 700; font-size: 0.95rem;">PROJECT SETU & NETRA</div>
+          <div style="font-size: 0.68rem; color: var(--cyan-neon); font-family: var(--font-mono);" id="header-plant-title">CLUSTER: CHANDERIYA (CLZS)</div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <span class="tag-badge tag-cyan" id="header-user-tag">NEHA PACHOLI • SPOC</span>
+        <button class="btn-act btn-outline" style="padding: 6px 12px; font-size: 0.75rem;" onclick="logoutSession()">Sign Out</button>
+      </div>
+    </header>
+
+    <!-- 6 Dedicated Navigation Sections -->
+    <nav class="nav-bar">
+      <button class="nav-btn active" onclick="switchNavSection('tab-search', this)">1. Universal Search</button>
+      <button class="nav-btn" onclick="switchNavSection('tab-netra', this)">2. NETRA Live OCR</button>
+      <button class="nav-btn" onclick="switchNavSection('tab-inward', this)">3. Material Inward</button>
+      <button class="nav-btn" onclick="switchNavSection('tab-outward', this)">4. Outward & POD</button>
+      <button class="nav-btn" onclick="switchNavSection('tab-setu', this)">5. JIT & Hackathon KPIs</button>
+      <button class="nav-btn" onclick="switchNavSection('tab-audit', this)">6. Audit Trail</button>
+    </nav>
+
+    <div class="container">
+
+      <!-- ================= TAB 1: UNIVERSAL SEARCH ================= -->
+      <div id="tab-search" class="tab-pane active">
+        <div class="panel">
+          <div class="panel-title" style="color: var(--cyan-neon);">🔍 Multi-Token Material & Web Parameter Engine</div>
+          <p style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 14px;">
+            Search across local SAP inventories, functional equipment descriptions, and live web technical sheets (e.g. <em>"Motorola"</em>, <em>"PMNN4543"</em>, <em>"7.4V"</em>, <em>"SKF"</em>, <em>"Warman"</em>, <em>"Ball Valve"</em>).
+          </p>
+          <input type="text" class="search-input-field" id="search-input-box" 
+                 placeholder="Type any word or technical spec..." 
+                 oninput="runLiveSearch(this.value)" />
+          
+          <div id="search-results-list" style="margin-top: 16px;"></div>
+        </div>
+      </div>
+
+      <!-- ================= TAB 2: NETRA CAMERA & LIVE OCR ================= -->
+      <div id="tab-netra" class="tab-pane">
+        <div class="panel">
+          <div class="panel-title">
+            <span>NETRA Live Optical & Web-Enriched OCR</span>
+            <span id="cam-status-pill" class="tag-badge tag-cyan">Camera Idle</span>
+          </div>
+
+          <div id="reader" style="max-width: 600px; margin: 0 auto 16px auto;"></div>
+
+          <div style="display: flex; gap: 12px; max-width: 600px; margin: 0 auto;">
+            <button class="btn-act btn-primary col" id="btn-cam-stream" onclick="toggleCameraEngine()">Start Live Video Camera</button>
+            <button class="btn-act btn-amber col" id="btn-snap-ocr" style="display: none;" onclick="triggerNeuralOCR()">📸 Extract Live OCR Specs</button>
+          </div>
+
+          <div style="text-align: center; margin-top: 14px; font-size: 0.78rem; color: var(--text-sub);">
+            Test Quick Presets: 
+            <a href="#" style="color: var(--cyan-neon); margin: 0 6px;" onclick="simulateOCR('MOTOROLA PMNN4543A 7.4V 2450MAH IP68 LI-ION')">[Motorola Radio Battery]</a>
+            <a href="#" style="color: var(--cyan-neon); margin: 0 6px;" onclick="simulateOCR('SKF 22218 EK SPHERICAL ROLLER BEARING')">[SKF Bearing]</a>
+          </div>
+        </div>
+
+        <!-- LIVE OCR RESULT CARD -->
+        <div class="panel" id="ocr-spec-card" style="display: none; border-color: var(--cyan-neon);">
+          <div class="panel-title" style="color: var(--cyan-neon);">
+            <span>Live Parameters Recognized</span>
+            <span class="tag-badge tag-emerald" id="ocr-source-lbl">VERIFIED</span>
+          </div>
+
+          <div class="row">
+            <div class="col form-group">
+              <label>SAP Material Code</label>
+              <input type="text" id="ocr-res-code" readonly style="color: var(--cyan-neon); font-family: var(--font-mono); font-weight: 700;" />
+            </div>
+            <div class="col form-group">
+              <label>Criticality (VED)</label>
+              <input type="text" id="ocr-res-ved" readonly />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Product Title / Short Description</label>
+            <input type="text" id="ocr-res-title" readonly />
+          </div>
+
+          <div class="form-group">
+            <label>Extracted Specifications & Parameters</label>
+            <textarea id="ocr-res-specs" rows="2" readonly></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Detailed Technical Parameters / Web Summary</label>
+            <textarea id="ocr-res-long" rows="3" readonly></textarea>
+          </div>
+
+          <div class="row" style="margin-top: 14px;">
+            <div class="col">
+              <button class="btn-act btn-emerald" style="width: 100%;" onclick="routeToInwardSection()">Inward to Assigned Rack</button>
+            </div>
+            <div class="col">
+              <button class="btn-act btn-amber" style="width: 100%;" onclick="routeToOutwardSection()">Route to Outward / POD</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= TAB 3: MATERIAL INWARD (SEPARATED) ================= -->
+      <div id="tab-inward" class="tab-pane">
+        <div class="panel" style="border-color: var(--emerald-accent);">
+          <div class="panel-title" style="color: var(--emerald-accent);">📦 Warehouse Inward Arrival & Bin Storage</div>
+          <p style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 14px;">
+            Inward arriving stock batches into designated warehouse bins (**R1, R2, R3, R4**) to immediately refresh on-hand counts.
+          </p>
+
+          <div class="row">
+            <div class="col form-group">
+              <label>Material Code</label>
+              <input type="text" id="inward-code" placeholder="e.g., M300891" />
+            </div>
+            <div class="col form-group">
+              <label>Arrival Quantity</label>
+              <input type="number" id="inward-qty" value="1" min="1" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Product Title</label>
+            <input type="text" id="inward-desc" placeholder="e.g., MOTOROLA BATTERY PMNN4543A" />
+          </div>
+
+          <div class="form-group">
+            <label>Select Storage Rack</label>
+            <select id="inward-rack">
+              <option value="R1">Rack R1 (Heavy Mechanicals & Slurry Pumps)</option>
+              <option value="R2">Rack R2 (Valves, Flanges & Fluidics)</option>
+              <option value="R3">Rack R3 (Bearings & Rotary Assemblies)</option>
+              <option value="R4">Rack R4 (Telecom, Electronics & Battery Banks)</option>
+            </select>
+          </div>
+
+          <button class="btn-act btn-emerald" style="width: 100%; padding: 14px;" onclick="submitInwardReceipt()">Confirm Bin Allocation & Inward</button>
+        </div>
+      </div>
+
+      <!-- ================= TAB 4: MATERIAL OUTWARD & POD (SEPARATED) ================= -->
+      <div id="tab-outward" class="tab-pane">
+        <div class="panel" style="border-color: var(--amber-alert);">
+          <div class="panel-title" style="color: var(--amber-alert);">🚀 Point-of-Use Field Consumption & Proof of Delivery</div>
+          <p style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 14px;">
+            Deduct parts for active plant maintenance or dispatch to personnel using digital touch signatures.
+          </p>
+
+          <div class="row">
+            <div class="col form-group">
+              <label>Material Code</label>
+              <input type="text" id="outward-code" placeholder="e.g., M300891" />
+            </div>
+            <div class="col form-group">
+              <label>Issue Quantity</label>
+              <input type="number" id="outward-qty" value="1" min="1" />
+            </div>
+          </div>
+
+          <!-- Section A: Field Consumption -->
+          <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-line); padding: 16px; border-radius: 10px; margin-bottom: 18px;">
+            <div style="font-weight: 700; font-size: 0.9rem; color: var(--amber-alert); margin-bottom: 8px;">Method A: Plant Field Consumption (Maintenance Log)</div>
+            <div class="form-group">
+              <label>Functional Location / Parent Machine</label>
+              <input type="text" id="outward-floc" placeholder="e.g., CLZS / Cell House #2 / Blower Fan #3" />
+            </div>
+            <div class="row">
+              <div class="col form-group">
+                <label>Consumption Purpose</label>
+                <select id="outward-purpose">
+                  <option value="Routine PM">Routine Scheduled PM</option>
+                  <option value="Emergency Breakdown">Emergency Breakdown</option>
+                  <option value="Shutdown Overhaul">Shutdown Overhaul</option>
+                </select>
+              </div>
+              <div class="col form-group">
+                <label>Work Order # (Optional)</label>
+                <input type="text" id="outward-wo" placeholder="e.g., WO-88402" />
+              </div>
+            </div>
+            <button class="btn-act btn-amber" style="width: 100%;" onclick="submitFieldConsumption()">Deduct Stock for Plant Maintenance</button>
+          </div>
+
+          <!-- Section B: Touch POD -->
+          <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-line); padding: 16px; border-radius: 10px;">
+            <div style="font-weight: 700; font-size: 0.9rem; color: var(--ruby-danger); margin-bottom: 8px;">Method B: Personnel Handover & Digital Touch POD</div>
+            <div class="form-group">
+              <label>Receiver Full Name</label>
+              <input type="text" id="outward-receiver" placeholder="e.g., Sunil Verma (Shift Mech)" />
+            </div>
+            <div class="form-group">
+              <label>Touchscreen Signature (POD)</label>
+              <canvas id="sig-canvas"></canvas>
+              <button class="btn-act btn-outline" style="font-size: 0.72rem; padding: 4px 10px; margin-top: 6px;" onclick="clearSignatureCanvas()">Clear Signature</button>
+            </div>
+            <button class="btn-act btn-ruby" style="width: 100%;" onclick="submitPODDispatch()">Authorize Dispatch with Signed POD</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= TAB 5: JIT & HACKATHON KPIS ================= -->
+      <div id="tab-setu" class="tab-pane">
+        
+        <!-- Hackathon Verified Metric Tiles -->
+        <div class="kpi-grid">
+          <div class="kpi-tile">
+            <div class="kpi-label">Total Stock Capital</div>
+            <div class="kpi-value" id="kpi-cap">₹0.00</div>
+          </div>
+          <div class="kpi-tile emerald">
+            <div class="kpi-label">Gross Reduction Opp.</div>
+            <div class="kpi-value" id="kpi-savings" style="color: #34d399;">14.2%</div>
+          </div>
+          <div class="kpi-tile">
+            <div class="kpi-label">Forecast Accuracy</div>
+            <div class="kpi-value" id="kpi-accuracy">92.4%</div>
+          </div>
+          <div class="kpi-tile">
+            <div class="kpi-label">Vital Spare Availability</div>
+            <div class="kpi-value" id="kpi-vital">96.2%</div>
+          </div>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-tile ruby">
+            <div class="kpi-label">NMI Capital Blocked</div>
+            <div class="kpi-value" id="kpi-nmi">₹0.00</div>
+          </div>
+          <div class="kpi-tile amber">
+            <div class="kpi-label">SMI Capital Blocked</div>
+            <div class="kpi-value" id="kpi-smi">₹0.00</div>
+          </div>
+          <div class="kpi-tile ruby">
+            <div class="kpi-label">Stockouts Prevented</div>
+            <div class="kpi-value" id="kpi-stockouts">0</div>
+          </div>
+          <div class="kpi-tile">
+            <div class="kpi-label">Active Monitored SKUs</div>
+            <div class="kpi-value" id="kpi-skus">0</div>
+          </div>
+        </div>
+
+        <!-- JIT PR Recommendations Table -->
+        <div class="panel">
+          <div class="panel-title">
+            <span>Dynamic ROP, 3-Month MoM Forecast & JIT PR Recommendations</span>
+            <button class="btn-act btn-outline" style="font-size: 0.72rem; padding: 6px 12px;" onclick="exportSAPCSV()">Export SAP ME51N CSV</button>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>SKU</th>
+                  <th>Description</th>
+                  <th>Stock</th>
+                  <th>Dyn ROP</th>
+                  <th>MoM Forecast (3M)</th>
+                  <th>Aging Status</th>
+                  <th>PR Trigger Date</th>
+                  <th>PR Qty</th>
+                  <th>Action Recommendation</th>
+                </tr>
+              </thead>
+              <tbody id="inventory-matrix-rows"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Duplicate SKU Identification -->
+        <div class="panel">
+          <div class="panel-title">NLP Semantic Duplicate Material Codes Across Clusters</div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>SKU 1</th>
+                  <th>Description 1</th>
+                  <th>SKU 2</th>
+                  <th>Description 2</th>
+                  <th>Similarity</th>
+                  <th>Optimization Action</th>
+                </tr>
+              </thead>
+              <tbody id="duplicate-matrix-rows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= TAB 6: AUDIT TRAIL ================= -->
+      <div id="tab-audit" class="tab-pane">
+        <div class="panel">
+          <div class="panel-title">Immutable Transaction Ledger</div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Type</th>
+                  <th>SKU</th>
+                  <th>Bin / Location</th>
+                  <th>Qty</th>
+                  <th>User / Action</th>
+                </tr>
+              </thead>
+              <tbody id="audit-trail-rows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const API = "";
+    let html5QrCode = null;
+    let isCameraActive = false;
+    let sigCanvas, sigCtx, isDrawing = false;
+    let currentActions = [];
+
+    let sessionUser = {
+      name: "Neha Pacholi",
+      email: "neha.pacholi@vedanta.co.in",
+      role: "SPOC / Inventory Planner",
+      plant: "Chanderiya"
+    };
+
+    // --- STEP 1: TRANSITION FROM LOGO STAGE TO LOGIN STAGE ---
+    function enterGatewayStage() {
+      const hero = document.getElementById('view-landing');
+      hero.style.opacity = '0';
+      hero.style.transform = 'translateY(-20px)';
+      setTimeout(() => {
+        hero.style.display = 'none';
+        document.getElementById('view-auth').style.display = 'flex';
+      }, 600);
+    }
+
+    // --- STEP 2: AUTHENTICATION FLOWS ---
+    function toggleAuthMode(mode) {
+      const loginBtn = document.getElementById('btn-login-tab');
+      const signupBtn = document.getElementById('btn-signup-tab');
+      const loginForm = document.getElementById('form-login');
+      const signupForm = document.getElementById('form-signup');
+
+      if (mode === 'login') {
+        loginBtn.classList.add('active');
+        signupBtn.classList.remove('active');
+        loginForm.style.display = 'block';
+        signupForm.style.display = 'none';
+      } else {
+        signupBtn.classList.add('active');
+        loginBtn.classList.remove('active');
+        signupForm.style.display = 'block';
+        loginForm.style.display = 'none';
+      }
+    }
+
+    function sendEmailOTP() {
+      const email = document.getElementById('signup-email').value;
+      if (!email) return alert("Please enter your corporate email address.");
+      document.getElementById('otp-hint-msg').style.display = 'block';
+      alert(`OTP verification code dispatched to ${email}. (Demo Code: 492108)`);
+    }
+
+    function handleLoginSubmit(e) {
+      e.preventDefault();
+      sessionUser.email = document.getElementById('login-email').value;
+      sessionUser.role = document.getElementById('login-role').value;
+      sessionUser.name = sessionUser.email.split('@')[0].replace('.', ' ').toUpperCase();
+      activateApplicationPortal();
+    }
+
+    function handleSignupSubmit(e) {
+      e.preventDefault();
+      const otp = document.getElementById('signup-otp').value.trim();
+      if (otp !== "492108") return alert("Invalid OTP code. Please enter demo code: 492108");
+
+      sessionUser.name = document.getElementById('signup-name').value;
+      sessionUser.plant = document.getElementById('signup-plant').value;
+      sessionUser.role = document.getElementById('signup-role').value;
+      sessionUser.email = document.getElementById('signup-email').value;
+      alert(`User profile ${sessionUser.name} registered and provisioned for ${sessionUser.plant}.`);
+      activateApplicationPortal();
+    }
+
+    function activateApplicationPortal() {
+      document.getElementById('view-auth').style.display = 'none';
+      document.getElementById('view-app').style.display = 'block';
+      document.getElementById('header-user-tag').textContent = `${sessionUser.name} • ${sessionUser.role}`;
+      document.getElementById('header-plant-title').textContent = `CLUSTER: ${sessionUser.plant.toUpperCase()}`;
+      loadAnalyticsData();
+      runLiveSearch("");
+    }
+
+    function logoutSession() {
+      document.getElementById('view-app').style.display = 'none';
+      document.getElementById('view-landing').style.display = 'flex';
+      document.getElementById('view-landing').style.opacity = '1';
+      document.getElementById('view-landing').style.transform = 'translateY(0)';
+      if (isCameraActive) toggleCameraEngine();
+    }
+
+    // --- STEP 3: WORKSPACE NAVIGATION ---
+    function switchNavSection(tabId, el) {
+      document.querySelectorAll('.tab-pane').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      el.classList.add('active');
+
+      if (tabId === 'tab-setu' || tabId === 'tab-audit') loadAnalyticsData();
+      if (tabId === 'tab-outward') setTimeout(initSignatureCanvas, 100);
+    }
+
+    // ================= 1. UNIVERSAL SEARCH =================
+    async function runLiveSearch(query) {
+      const list = document.getElementById('search-results-list');
+      const res = await fetch(`${API}/api/catalog/search?query=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      list.innerHTML = "";
+
+      if (data.results.length === 0) {
+        list.innerHTML = `<div style="padding:16px; color:var(--text-sub);">No matching products found.</div>`;
+        return;
+      }
+
+      data.results.forEach(item => {
+        list.innerHTML += `
+          <div class="result-card" onclick='pickSearchResult(${JSON.stringify(item)})'>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-weight:700; color:var(--cyan-neon); font-size:0.95rem;">${item.short_text}</span>
+              <span class="tag-badge tag-emerald">${item.criticality}</span>
+            </div>
+            <div style="font-size:0.78rem; color:var(--text-sub); margin-top:4px;">${item.specs}</div>
+            <div style="font-size:0.72rem; color:var(--text-bright); margin-top:6px;">${item.long_text}</div>
+            <div style="font-size:0.72rem; color:var(--cyan-neon); margin-top:6px; font-family:var(--font-mono); font-weight:bold;">
+              SAP Code: ${item.sap_mat_code} | Total Stock: ${item.total_stock} | Bins: ${item.location_details}
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function pickSearchResult(item) {
+      document.getElementById('inward-code').value = item.sap_mat_code;
+      document.getElementById('inward-desc').value = item.short_text;
+      document.getElementById('outward-code').value = item.sap_mat_code;
+      alert(`Pre-populated [${item.sap_mat_code}] into Inward and Outward panels.`);
+    }
+
+    // ================= 2. LIVE OCR & CAMERA =================
+    function toggleCameraEngine() {
+      const btn = document.getElementById('btn-cam-stream');
+      const snapBtn = document.getElementById('btn-snap-ocr');
+      const pill = document.getElementById('cam-status-pill');
+
+      if (!isCameraActive) {
+        html5QrCode = new Html5Qrcode("reader");
+        html5QrCode.start(
+          { facingMode: "environment" },
+          { fps: 15, qrbox: { width: 260, height: 260 } },
+          (decoded) => {
+            toggleCameraEngine();
+            requestLiveOCREnrichment(decoded);
+          },
+          (err) => {}
+        ).then(() => {
+          btn.textContent = "Stop Camera";
+          btn.className = "btn-act btn-ruby col";
+          snapBtn.style.display = "inline-flex";
+          pill.textContent = "Camera Live";
+          pill.className = "tag-badge tag-emerald";
+          isCameraActive = true;
+        }).catch(err => alert("Camera stream error: " + err));
+      } else {
+        html5QrCode.stop().then(() => {
+          html5QrCode.clear();
+          btn.textContent = "Start Live Video Camera";
+          btn.className = "btn-act btn-primary col";
+          snapBtn.style.display = "none";
+          pill.textContent = "Camera Idle";
+          pill.className = "tag-badge tag-cyan";
+          isCameraActive = false;
+        });
+      }
+    }
+
+    async function triggerNeuralOCR() {
+      const videoEl = document.querySelector("#reader video");
+      if (!videoEl) return alert("Camera feed not ready.");
+
+      const offCanvas = document.createElement("canvas");
+      offCanvas.width = videoEl.videoWidth;
+      offCanvas.height = videoEl.videoHeight;
+      const offCtx = offCanvas.getContext("2d");
+      offCtx.drawImage(videoEl, 0, 0, offCanvas.width, offCanvas.height);
+
+      try {
+        const { data: { text } } = await Tesseract.recognize(offCanvas, 'eng');
+        toggleCameraEngine();
+        requestLiveOCREnrichment(text);
+      } catch (err) {
+        alert("OCR error: " + err);
+      }
+    }
+
+    function simulateOCR(txt) {
+      requestLiveOCREnrichment(txt);
+    }
+
+    async function requestLiveOCREnrichment(rawText) {
+      const res = await fetch(`${API}/api/netra/live-ocr-enrich`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ raw_ocr_text: rawText })
+      });
+      const data = await res.json();
+
+      document.getElementById('ocr-source-lbl').textContent = data.source;
+      document.getElementById('ocr-res-code').value = data.sap_mat_code;
+      document.getElementById('ocr-res-ved').value = data.criticality;
+      document.getElementById('ocr-res-title').value = data.short_text;
+      document.getElementById('ocr-res-specs').value = data.specs;
+      document.getElementById('ocr-res-long').value = data.long_text;
+      document.getElementById('ocr-spec-card').style.display = 'block';
+
+      // Pre-fill Inward and Outward
+      document.getElementById('inward-code').value = data.sap_mat_code;
+      document.getElementById('inward-desc').value = data.short_text;
+      document.getElementById('outward-code').value = data.sap_mat_code;
+    }
+
+    function routeToInwardSection() {
+      switchNavSection('tab-inward', document.querySelectorAll('.nav-btn')[2]);
+    }
+    function routeToOutwardSection() {
+      switchNavSection('tab-outward', document.querySelectorAll('.nav-btn')[3]);
+    }
+
+    // ================= 3. INWARD DOCK =================
+    async function submitInwardReceipt() {
+      const code = document.getElementById('inward-code').value.trim();
+      const qty = parseFloat(document.getElementById('inward-qty').value);
+      const rack = document.getElementById('inward-rack').value;
+
+      if (!code) return alert("Please enter a valid Material Code.");
+
+      const payload = {
+        sap_mat_code: code,
+        plant: sessionUser.plant,
+        storage_location: "MAIN-WH",
+        rack_no: rack,
+        qty: qty,
+        user_name: sessionUser.name
+      };
+
+      const res = await fetch(`${API}/api/netra/inward`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      alert(data.message);
+      loadAnalyticsData();
+    }
+
+    // ================= 4. OUTWARD & POD =================
+    async function submitFieldConsumption() {
+      const code = document.getElementById('outward-code').value.trim();
+      const qty = parseFloat(document.getElementById('outward-qty').value);
+      const floc = document.getElementById('outward-floc').value.trim();
+
+      if (!code || !floc) return alert("Please specify both Material Code and Functional Location.");
+
+      const payload = {
+        sap_mat_code: code,
+        plant: sessionUser.plant,
+        qty: qty,
+        functional_location: floc,
+        consumption_purpose: document.getElementById('outward-purpose').value,
+        work_order_no: document.getElementById('outward-wo').value || "N/A",
+        consumed_by: sessionUser.name,
+        remarks: "Point-of-use consumption"
+      };
+
+      const res = await fetch(`${API}/api/netra/consume`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        const d = await res.json();
+        alert(d.message);
+        loadAnalyticsData();
+      } else {
+        const err = await res.json();
+        alert(err.detail);
+      }
+    }
+
+    async function submitPODDispatch() {
+      const code = document.getElementById('outward-code').value.trim();
+      const qty = parseFloat(document.getElementById('outward-qty').value);
+      const receiver = document.getElementById('outward-receiver').value.trim();
+
+      if (!code || !receiver) return alert("Please enter Material Code and Receiver Name.");
+
+      const payload = {
+        sap_mat_code: code,
+        plant: sessionUser.plant,
+        storage_location: "MAIN-WH",
+        rack_no: "R4",
+        qty: qty,
+        receiver_name: receiver,
+        signature_data: sigCanvas.toDataURL()
+      };
+
+      const res = await fetch(`${API}/api/netra/pod`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        const d = await res.json();
+        alert(d.message);
+        clearSignatureCanvas();
+        loadAnalyticsData();
+      } else {
+        const err = await res.json();
+        alert(err.detail);
+      }
+    }
+
+    function initSignatureCanvas() {
+      sigCanvas = document.getElementById('sig-canvas');
+      if (!sigCanvas) return;
+      sigCtx = sigCanvas.getContext('2d');
+      sigCanvas.width = sigCanvas.offsetWidth;
+      sigCanvas.height = sigCanvas.offsetHeight;
+      sigCtx.lineWidth = 2.5;
+      sigCtx.strokeStyle = "#00f0ff";
+
+      function getPos(e) {
+        const rect = sigCanvas.getBoundingClientRect();
+        const ev = e.touches ? e.touches[0] : e;
+        return { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
+      }
+      sigCanvas.onmousedown = sigCanvas.ontouchstart = (e) => {
+        isDrawing = true;
+        const p = getPos(e);
+        sigCtx.beginPath();
+        sigCtx.moveTo(p.x, p.y);
+      };
+      sigCanvas.onmousemove = sigCanvas.ontouchmove = (e) => {
+        if (!isDrawing) return;
+        const p = getPos(e);
+        sigCtx.lineTo(p.x, p.y);
+        sigCtx.stroke();
+      };
+      window.onmouseup = window.ontouchend = () => isDrawing = false;
+    }
+
+    function clearSignatureCanvas() {
+      if (sigCtx) sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+    }
+
+    // ================= 5. KPIS & ANALYTICS =================
+    async function loadAnalyticsData() {
+      const res = await fetch(`${API}/api/setu/analytics`);
+      const data = await res.json();
+      currentActions = data.inventory_actions;
+
+      document.getElementById('kpi-cap').textContent = "₹" + (data.kpis.total_working_capital_inr / 100000).toFixed(1) + " L";
+      document.getElementById('kpi-savings').textContent = `${data.kpis.gross_reduction_pct}% (₹${(data.kpis.gross_reduction_opportunity_inr / 100000).toFixed(1)}L)`;
+      document.getElementById('kpi-accuracy').textContent = data.kpis.forecast_accuracy_pct + "%";
+      document.getElementById('kpi-vital').textContent = data.kpis.vital_critical_availability_pct + "%";
+      document.getElementById('kpi-nmi').textContent = "₹" + (data.kpis.nmi_stock_value / 100000).toFixed(1) + " L";
+      document.getElementById('kpi-smi').textContent = "₹" + (data.kpis.smi_stock_value / 100000).toFixed(1) + " L";
+      document.getElementById('kpi-stockouts').textContent = data.kpis.stockouts_flagged;
+      document.getElementById('kpi-skus').textContent = data.kpis.monitored_skus;
+
+      const tbody = document.getElementById('inventory-matrix-rows');
+      tbody.innerHTML = "";
+      data.inventory_actions.forEach(item => {
+        let agingTag = "tag-emerald";
+        if (item.aging_status.includes("NMI")) agingTag = "tag-ruby";
+        if (item.aging_status.includes("SMI")) agingTag = "tag-amber";
+
+        tbody.innerHTML += `
+          <tr>
+            <td style="font-weight:700; color:var(--cyan-neon); font-family:var(--font-mono);">${item.sap_mat_code}</td>
+            <td>${item.short_text}</td>
+            <td style="font-weight:700;">${item.current_stock}</td>
+            <td>${item.dynamic_rop}</td>
+            <td style="font-size:0.72rem; color:var(--text-sub); font-family:var(--font-mono);">${item.mom_forecast}</td>
+            <td><span class="tag-badge ${agingTag}">${item.aging_status}</span></td>
+            <td style="font-weight:700; color:${item.pr_trigger_date === 'IMMEDIATE' ? '#fb7185' : '#fff'};">${item.pr_trigger_date}</td>
+            <td style="font-weight:700;">${item.suggested_qty}</td>
+            <td style="font-weight:700; color:${item.action.includes('TRANSFER') ? '#34d399' : 'var(--cyan-neon)'};">${item.action}</td>
+          </tr>
+        `;
+      });
+
+      const dupBody = document.getElementById('duplicate-matrix-rows');
+      dupBody.innerHTML = "";
+      data.detected_duplicates.forEach(d => {
+        dupBody.innerHTML += `
+          <tr>
+            <td style="font-weight:700; font-family:var(--font-mono);">${d.mat_1}</td>
+            <td>${d.text_1}</td>
+            <td style="font-weight:700; font-family:var(--font-mono);">${d.mat_2}</td>
+            <td>${d.text_2}</td>
+            <td><span class="tag-badge tag-amber">${d.similarity}%</span></td>
+            <td style="color:#34d399; font-weight:700;">${d.action}</td>
+          </tr>
+        `;
+      });
+
+      const audBody = document.getElementById('audit-trail-rows');
+      audBody.innerHTML = "";
+      data.recent_transactions.forEach(t => {
+        audBody.innerHTML += `
+          <tr>
+            <td style="font-family:var(--font-mono);">${t.timestamp.split(' ')[1]}</td>
+            <td><span class="tag-badge ${t.tx_type.includes('INWARD') ? 'tag-emerald' : 'tag-amber'}">${t.tx_type}</span></td>
+            <td style="font-family:var(--font-mono);">${t.sap_mat_code}</td>
+            <td>${t.rack_no}</td>
+            <td>${t.qty}</td>
+            <td>${t.user_name}</td>
+          </tr>
+        `;
+      });
+    }
+
+    function exportSAPCSV() {
+      let csv = "Material,Plant,Requirement_Qty,Delivery_Date,Tracking_Action\n";
+      currentActions.filter(r => r.suggested_qty > 0).forEach(r => {
+        csv += `${r.sap_mat_code},1001,${r.suggested_qty},${new Date().toISOString().split('T')[0]},${r.action}\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `HZL_ME51N_PR_RECOMMENDATIONS_${sessionUser.plant.toUpperCase()}.csv`;
+      a.click();
+    }
+  </script>
+</body>
+</html>

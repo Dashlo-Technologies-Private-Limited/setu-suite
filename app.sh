@@ -1,0 +1,1 @@
+pip install fastapi uvicorn pydantic scikit-learn numpy pandas
