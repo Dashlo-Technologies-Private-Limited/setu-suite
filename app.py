@@ -48,35 +48,38 @@ _cache = {"data": None, "ts": 0}
 # =========================================================
 # 0. DATABASE & BOM INITIALIZATION ENGINE
 # =========================================================
+# =========================================================
+# 0. CLOUD-SAFE DATABASE & BOM INITIALIZATION ENGINE
+# =========================================================
 def init_bom_db():
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS bom_hierarchy (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            plant_code REAL,
-            equipment_tag TEXT NOT NULL,
-            equipment_desc TEXT,
-            item_category TEXT,
-            material_no TEXT NOT NULL,
-            item_id INTEGER,
-            material_desc TEXT,
-            uom TEXT,
-            bom_qty REAL
-        )
-    """)
-    c.execute("CREATE INDEX IF NOT EXISTS idx_bom_mat ON bom_hierarchy(material_no)")
-    c.execute("CREATE INDEX IF NOT EXISTS idx_bom_eqp ON bom_hierarchy(equipment_tag)")
-    c.execute("CREATE INDEX IF NOT EXISTS idx_bom_plant ON bom_hierarchy(plant_code)")
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS bom_hierarchy (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                plant_code REAL,
+                equipment_tag TEXT NOT NULL,
+                equipment_desc TEXT,
+                item_category TEXT,
+                material_no TEXT NOT NULL,
+                item_id INTEGER,
+                material_desc TEXT,
+                uom TEXT,
+                bom_qty REAL
+            )
+        """)
+        c.execute("CREATE INDEX IF NOT EXISTS idx_bom_mat ON bom_hierarchy(material_no)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_bom_eqp ON bom_hierarchy(equipment_tag)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_bom_plant ON bom_hierarchy(plant_code)")
 
-    # Check if table already populated
-    c.execute("SELECT COUNT(*) FROM bom_hierarchy")
-    count = c.fetchone()[0]
+        c.execute("SELECT COUNT(*) FROM bom_hierarchy")
+        count = c.fetchone()[0]
 
-    if count == 0 and os.path.exists(BOM_FILE_PATH):
-        try:
+        # Only attempt Excel ingestion if database is completely empty and NOT in serverless production
+        if count == 0 and os.path.exists(BOM_FILE_PATH) and not os.environ.get("VERCEL"):
             import pandas as pd
-            print(f"[SETU BOM] Ingesting {BOM_FILE_PATH} into {DB_PATH}...")
+            print(f"[SETU BOM] Seeding {BOM_FILE_PATH}...")
             df = pd.read_excel(BOM_FILE_PATH, sheet_name="BOM", header=1)
             df = df.rename(columns={
                 'PLANNING PLANT': 'plant_code',
@@ -89,7 +92,6 @@ def init_bom_db():
                 'UOM': 'uom',
                 'QTY.': 'bom_qty'
             })
-            # Clean string columns
             for col in ['equipment_tag', 'equipment_desc', 'item_category', 'material_no', 'material_desc', 'uom']:
                 if col in df.columns:
                     df[col] = df[col].astype(str).str.strip()
@@ -98,17 +100,16 @@ def init_bom_db():
 
             df.to_sql("bom_hierarchy", conn, if_exists="append", index=False)
             conn.commit()
-            print(f"[SETU BOM] Successfully ingested {len(df):,} BOM records.")
-        except Exception as e:
-            print(f"[SETU BOM] Ingestion warning: {e}")
-    conn.close()
+            print(f"[SETU BOM] Ingested {len(df):,} BOM records.")
+        conn.close()
+    except Exception as e:
+        print(f"[SETU BOM] Non-fatal DB init note: {e}")
 
-# Auto-initialize BOM schema and dataset on startup
+# Safe startup hook
 try:
     init_bom_db()
 except Exception as e:
-    print(f"[SETU BOM] Startup DB init warning: {e}")
-
+    pass
 # =========================================================
 # 1. JIT & HACKATHON KPIS ENDPOINT
 # =========================================================

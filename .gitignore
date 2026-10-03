@@ -31,11 +31,6 @@ ENV/
 env.bak/
 venv.bak/
 
-# Local SQLite Database & Audit Logs (Important: Generate cleanly via app init)
-*.db
-*.sqlite3
-setu_operations.db
-
 # Environment variables & secrets
 .env
 .env.local
