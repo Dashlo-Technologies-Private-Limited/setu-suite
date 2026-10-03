@@ -510,11 +510,8 @@
           <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-line); padding: 16px; border-radius: 10px; margin-bottom: 18px;">
             <div style="font-weight: 700; font-size: 0.9rem; color: var(--amber-alert); margin-bottom: 8px;">Method A: Plant Field Consumption (Maintenance Log)</div>
             <div class="form-group">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                <label style="margin:0;">Functional Location / Equipment Parent Tag</label>
-                <button type="button" class="btn-act btn-outline" style="padding:2px 8px; font-size:0.68rem;" onclick="inspectEquipmentFromInput()">🔍 Inspect Equipment BOM</button>
-              </div>
-              <input type="text" id="outward-floc" placeholder="e.g., ZMX-PFP-PDP, 441-PU200, ZEL-10-PU-080A" />
+              <label>Functional Location / Parent Machine</label>
+              <input type="text" id="outward-floc" placeholder="e.g., ZM_MINE_ZAMA_PFPL / Mixer MX115" />
             </div>
             <div class="row">
               <div class="col form-group">
@@ -750,39 +747,6 @@
     </div>
   </div>
 
-  <!-- ================= HZL ASSET BOM INSPECTION MODAL ================= -->
-  <div id="bomModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; align-items:center; justify-content:center; backdrop-filter:blur(6px);">
-    <div style="background:var(--bg-surface-elevated); border:1px solid var(--border-active); border-radius:14px; padding:22px; width:92%; max-width:680px; color:#fff; box-shadow:0 15px 50px rgba(0,0,0,0.9); max-height:85vh; display:flex; flex-direction:column;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid var(--border-line); padding-bottom:10px;">
-        <div>
-          <h3 style="margin:0; color:var(--cyan-neon); font-family:var(--font-heading); font-size:1.15rem;" id="bomModalTitle">⚙ HZL Bill-of-Materials Inspector</h3>
-          <p style="font-size:0.75rem; color:var(--text-sub); margin-top:3px;" id="bomModalSubtitle">Hierarchical component relationships from master BOM</p>
-        </div>
-        <button onclick="closeBomModal()" class="btn-act btn-outline" style="padding:4px 10px; font-size:0.8rem;">✕ Close</button>
-      </div>
-
-      <div class="table-responsive" style="flex:1; margin-bottom:14px; max-height:420px;">
-        <table>
-          <thead id="bomModalThead">
-            <tr>
-              <th>Plant</th>
-              <th>Equipment Tag</th>
-              <th>Equipment Description</th>
-              <th>Quantity</th>
-            </tr>
-          </thead>
-          <tbody id="bomModalTbody">
-            <tr><td colspan="4" style="text-align:center; padding:20px; color:var(--text-sub);">Loading BOM linkages...</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div style="display:flex; justify-content:flex-end;">
-        <button onclick="closeBomModal()" class="btn-act btn-primary" style="padding:8px 18px;">Acknowledge & Return</button>
-      </div>
-    </div>
-  </div>
-
   <script>
     const API = "";
     let html5QrCode = null;
@@ -991,9 +955,7 @@
 
           return `
             <tr>
-              <td style="font-weight:700; color:var(--cyan-neon); font-family:var(--font-mono); cursor:pointer;" title="Inspect BOM Linkages" onclick="inspectMaterialBOM('${row.mat_code}')">
-                ${row.mat_code} ⚙
-              </td>
+              <td style="font-weight:700; color:var(--cyan-neon); font-family:var(--font-mono);">${row.mat_code}</td>
               <td>${row.description.substring(0, 34)}</td>
               <td><span class="tag-badge tag-cyan">${row.rack_id}</span></td>
               <td style="font-weight:700;">${row.current_qty}</td>
@@ -1083,11 +1045,8 @@
             </div>
             <div style="font-size:0.78rem; color:var(--text-sub); margin-top:4px;">${item.specs}</div>
             <div style="font-size:0.72rem; color:var(--text-bright); margin-top:6px;">${item.long_text}</div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
-              <div style="font-size:0.72rem; color:var(--cyan-neon); font-family:var(--font-mono); font-weight:bold;">
-                SAP Code: ${item.sap_mat_code} | Total Stock: ${item.total_stock} | Bins: ${item.locations || item.location_details || 'R1'}
-              </div>
-              <button class="btn-act btn-outline" style="padding:2px 8px; font-size:0.68rem;" onclick="event.stopPropagation(); inspectMaterialBOM('${item.sap_mat_code}')">⚙ Installed Assets</button>
+            <div style="font-size:0.72rem; color:var(--cyan-neon); margin-top:6px; font-family:var(--font-mono); font-weight:bold;">
+              SAP Code: ${item.sap_mat_code} | Total Stock: ${item.total_stock} | Bins: ${item.locations || item.location_details || 'R1'}
             </div>
           `;
           fragment.appendChild(div);
@@ -1348,18 +1307,9 @@
       card.style.display = "block";
 
       if (data.match_status === "EXACT_HZL_CATALOG_MATCH") {
-        const bomBadge = (data.installed_equipment_count && data.installed_equipment_count > 0) ?
-          `<span class="tag-badge tag-cyan" style="cursor:pointer;" onclick="inspectMaterialBOM('${data.sap_mat_code}')">⚙ Installed on ${data.installed_equipment_count} Machines</span>` : 
-          `<span class="tag-badge tag-cyan" style="cursor:pointer;" onclick="inspectMaterialBOM('${data.sap_mat_code}')">⚙ Inspect HZL BOM</span>`;
-
         header.innerHTML = `
-          <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
-            <span style="color:var(--emerald-accent);">Exact HZL Catalog Match Found</span>
-            <div style="display:flex; gap:8px;">
-              <span class="tag-badge tag-emerald">${data.criticality}</span>
-              ${bomBadge}
-            </div>
-          </div>
+          <span style="color:var(--emerald-accent);">Exact HZL Catalog Match Found</span>
+          <span class="tag-badge tag-emerald">${data.criticality}</span>
         `;
         content.innerHTML = `
           <div style="font-weight:700; font-size:1.1rem; color:var(--cyan-neon);">${data.short_text}</div>
@@ -1577,9 +1527,7 @@
 
         tbody.innerHTML += `
           <tr>
-            <td style="font-weight:700; color:var(--cyan-neon); font-family:var(--font-mono); cursor:pointer;" onclick="inspectMaterialBOM('${item.sap_mat_code}')">
-              ${item.sap_mat_code} ⚙
-            </td>
+            <td style="font-weight:700; color:var(--cyan-neon); font-family:var(--font-mono);">${item.sap_mat_code}</td>
             <td>${item.short_text.substring(0, 24)}</td>
             <td style="font-weight:700;">${item.current_stock}</td>
             <td style="color:var(--text-sub);">${item.static_sap_rop || '8'}</td>
@@ -1680,103 +1628,6 @@
         loadAnalyticsData();
       })
       .catch(err => alert("Error dispatching alert: " + err));
-    }
-
-    // ================= 8. HZL ASSET BILL-OF-MATERIALS (BOM) ENGINE =================
-    async function inspectMaterialBOM(materialNo) {
-      const modal = document.getElementById("bomModal");
-      const title = document.getElementById("bomModalTitle");
-      const sub = document.getElementById("bomModalSubtitle");
-      const thead = document.getElementById("bomModalThead");
-      const tbody = document.getElementById("bomModalTbody");
-
-      title.innerHTML = `⚙ Reverse BOM Linkages: <span style="font-family:var(--font-mono);">${materialNo}</span>`;
-      sub.textContent = "All operating equipment across mining & smelting complexes using this component";
-      thead.innerHTML = `
-        <tr>
-          <th>Plant Code</th>
-          <th>Equipment Parent</th>
-          <th>Equipment Description</th>
-          <th>Installed Qty</th>
-        </tr>
-      `;
-      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--cyan-neon);">Searching 91,901 BOM records...</td></tr>`;
-      modal.style.display = "flex";
-
-      try {
-        const res = await fetch(`${API}/api/bom/material/${encodeURIComponent(materialNo)}`);
-        const data = await res.json();
-
-        if (!data.installations || data.installations.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--text-sub);">No equipment assemblies currently mapped for ${materialNo} in HZL BOM.</td></tr>`;
-          return;
-        }
-
-        tbody.innerHTML = data.installations.map(ins => `
-          <tr>
-            <td style="font-family:var(--font-mono); font-weight:bold; color:var(--cyan-neon);">${ins.plant_code || 'Cluster'}</td>
-            <td style="font-weight:700; font-family:var(--font-mono);">${ins.equipment_tag}</td>
-            <td>${ins.equipment_desc || 'Industrial Machine Asset'}</td>
-            <td style="color:#34d399; font-weight:bold;">${ins.bom_qty} ${ins.uom || 'NO'}</td>
-          </tr>
-        `).join("");
-      } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--ruby-danger);">Failed to query BOM API: ${err}</td></tr>`;
-      }
-    }
-
-    async function inspectEquipmentBOM(equipmentTag) {
-      const modal = document.getElementById("bomModal");
-      const title = document.getElementById("bomModalTitle");
-      const sub = document.getElementById("bomModalSubtitle");
-      const thead = document.getElementById("bomModalThead");
-      const tbody = document.getElementById("bomModalTbody");
-
-      title.innerHTML = `🔩 Machine Assembly BOM: <span style="font-family:var(--font-mono);">${equipmentTag}</span>`;
-      sub.textContent = "Bill of Materials sub-assemblies and replacement spares";
-      thead.innerHTML = `
-        <tr>
-          <th>Item #</th>
-          <th>Material Code</th>
-          <th>Component Description</th>
-          <th>BOM Qty</th>
-        </tr>
-      `;
-      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--cyan-neon);">Fetching machine components...</td></tr>`;
-      modal.style.display = "flex";
-
-      try {
-        const res = await fetch(`${API}/api/bom/equipment/${encodeURIComponent(equipmentTag)}`);
-        const data = await res.json();
-
-        if (!data.components || data.components.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--text-sub);">No component bill-of-materials registered for ${equipmentTag}.</td></tr>`;
-          return;
-        }
-
-        tbody.innerHTML = data.components.map(comp => `
-          <tr>
-            <td style="font-family:var(--font-mono); color:var(--text-sub);">${comp.item_id || '1'}</td>
-            <td style="font-family:var(--font-mono); font-weight:bold; color:var(--cyan-neon); cursor:pointer;" onclick="selectMaterialDirect('${comp.material_no}', '${comp.material_desc.replace(/'/g, "\\'")}')">
-              ${comp.material_no} ↗
-            </td>
-            <td>${comp.material_desc}</td>
-            <td style="color:#34d399; font-weight:bold;">${comp.bom_qty} ${comp.uom || 'NO'}</td>
-          </tr>
-        `).join("");
-      } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--ruby-danger);">Failed to query equipment BOM: ${err}</td></tr>`;
-      }
-    }
-
-    function inspectEquipmentFromInput() {
-      const eqp = document.getElementById("outward-floc").value.trim();
-      if (!eqp) return alert("Please enter an Equipment Tag (e.g., ZMX-PFP-PDP, 441-PU200, ZEL-10-PU-080A) in the field.");
-      inspectEquipmentBOM(eqp);
-    }
-
-    function closeBomModal() {
-      document.getElementById("bomModal").style.display = "none";
     }
   </script>
 </body>

@@ -25,7 +25,6 @@ app.add_middleware(
 )
 
 DB_PATH = "setu_operations.db"
-BOM_FILE_PATH = "For Invetory IQ BOM Details.xlsx"
 
 FAVICON_SVG = """<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
   <polygon points='50,5 88,27 88,73 50,95 12,73 12,27' stroke='#a5b2c6' stroke-width='4' fill='#071322'/>
@@ -44,70 +43,6 @@ def get_db():
 
 # In-memory analytics cache
 _cache = {"data": None, "ts": 0}
-
-# =========================================================
-# 0. DATABASE & BOM INITIALIZATION ENGINE
-# =========================================================
-def init_bom_db():
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS bom_hierarchy (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            plant_code REAL,
-            equipment_tag TEXT NOT NULL,
-            equipment_desc TEXT,
-            item_category TEXT,
-            material_no TEXT NOT NULL,
-            item_id INTEGER,
-            material_desc TEXT,
-            uom TEXT,
-            bom_qty REAL
-        )
-    """)
-    c.execute("CREATE INDEX IF NOT EXISTS idx_bom_mat ON bom_hierarchy(material_no)")
-    c.execute("CREATE INDEX IF NOT EXISTS idx_bom_eqp ON bom_hierarchy(equipment_tag)")
-    c.execute("CREATE INDEX IF NOT EXISTS idx_bom_plant ON bom_hierarchy(plant_code)")
-
-    # Check if table already populated
-    c.execute("SELECT COUNT(*) FROM bom_hierarchy")
-    count = c.fetchone()[0]
-
-    if count == 0 and os.path.exists(BOM_FILE_PATH):
-        try:
-            import pandas as pd
-            print(f"[SETU BOM] Ingesting {BOM_FILE_PATH} into {DB_PATH}...")
-            df = pd.read_excel(BOM_FILE_PATH, sheet_name="BOM", header=1)
-            df = df.rename(columns={
-                'PLANNING PLANT': 'plant_code',
-                'EQUIPMENT': 'equipment_tag',
-                'EQUIPMENT  DESCRIPTION': 'equipment_desc',
-                'ITEM CATEGORY': 'item_category',
-                'MATERIAL No.': 'material_no',
-                'Item ID': 'item_id',
-                'MATERIAL DESCRIPTION': 'material_desc',
-                'UOM': 'uom',
-                'QTY.': 'bom_qty'
-            })
-            # Clean string columns
-            for col in ['equipment_tag', 'equipment_desc', 'item_category', 'material_no', 'material_desc', 'uom']:
-                if col in df.columns:
-                    df[col] = df[col].astype(str).str.strip()
-            df['bom_qty'] = pd.to_numeric(df['bom_qty'], errors='coerce').fillna(1.0)
-            df['plant_code'] = pd.to_numeric(df['plant_code'], errors='coerce').fillna(0)
-
-            df.to_sql("bom_hierarchy", conn, if_exists="append", index=False)
-            conn.commit()
-            print(f"[SETU BOM] Successfully ingested {len(df):,} BOM records.")
-        except Exception as e:
-            print(f"[SETU BOM] Ingestion warning: {e}")
-    conn.close()
-
-# Auto-initialize BOM schema and dataset on startup
-try:
-    init_bom_db()
-except Exception as e:
-    print(f"[SETU BOM] Startup DB init warning: {e}")
 
 # =========================================================
 # 1. JIT & HACKATHON KPIS ENDPOINT
@@ -299,7 +234,7 @@ def clean_ocr_text(raw_text: str) -> str:
     """Corrects common optical confusion patterns on industrial nameplates."""
     t = raw_text.upper()
     t = t.replace("\n", " ").replace("\r", " ")
-    t = re.sub(r'[^A-Z0-9\s\-\.\/\,]', ' ', t)
+    t = re.sub(r'[^A-Z0-9\s\-\/\.,]', ' ', t)
     t = re.sub(r'\s+', ' ', t).strip()
     return t
 
@@ -374,15 +309,6 @@ def live_ocr_enrich(req: OCRRequest):
         """, (code,))
         locs = [f"{x['plant']} ({x['rack_no']}: {int(x['q'])} qty)" for x in c.fetchall()]
         loc_str = " | ".join(locs) if locs else "Default Bin R1"
-
-        # Non-intrusive BOM reverse lookup count
-        bom_eqp_count = 0
-        try:
-            c.execute("SELECT COUNT(DISTINCT equipment_tag) FROM bom_hierarchy WHERE UPPER(material_no) = UPPER(?)", (code,))
-            bom_eqp_count = c.fetchone()[0] or 0
-        except Exception:
-            pass
-
         conn.close()
 
         confidence_pct = min(99.4, round(matches[0][0] * 24.5, 1))
@@ -396,7 +322,6 @@ def live_ocr_enrich(req: OCRRequest):
             "specs": best_item["specs"],
             "long_text": best_item["long_text"],
             "location_details": loc_str,
-            "installed_equipment_count": bom_eqp_count,
             "sap_creation_required": False
         }
 
@@ -779,50 +704,3 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 @app.get("/")
 def get_portal():
     return FileResponse("static/index.html")
-
-# =========================================================
-# 8. HZL ASSET BILL-OF-MATERIALS (BOM) ENGINE
-# =========================================================
-@app.get("/api/bom/material/{material_no}")
-def get_material_installations(material_no: str):
-    """
-    Reverse BOM Lookup: Finds all parent equipment and mining/smelting units 
-    where this spare part is installed.
-    """
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("""
-        SELECT plant_code, equipment_tag, equipment_desc, bom_qty, uom
-        FROM bom_hierarchy
-        WHERE UPPER(material_no) = UPPER(?)
-        ORDER BY plant_code, equipment_tag
-    """, (material_no.strip(),))
-    rows = [dict(r) for r in c.fetchall()]
-    conn.close()
-    return {
-        "material_no": material_no,
-        "total_installations": len(rows),
-        "installations": rows
-    }
-
-@app.get("/api/bom/equipment/{equipment_tag}")
-def get_equipment_components(equipment_tag: str):
-    """
-    Forward BOM Lookup: Retrieves complete sub-assembly components for a machine, 
-    supporting scheduled maintenance overhauls and Field Outward issuing.
-    """
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("""
-        SELECT material_no, material_desc, bom_qty, uom, item_id
-        FROM bom_hierarchy
-        WHERE UPPER(equipment_tag) = UPPER(?)
-        ORDER BY item_id ASC
-    """, (equipment_tag.strip(),))
-    rows = [dict(r) for r in c.fetchall()]
-    conn.close()
-    return {
-        "equipment_tag": equipment_tag,
-        "total_components": len(rows),
-        "components": rows
-    }
