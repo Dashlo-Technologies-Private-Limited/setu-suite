@@ -1,7 +1,9 @@
-import sys
 import os
+import sys
 
-# Add parent directory to path so it can import app.py and database
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# Direct path to root folder where app.py and setu_operations.db live
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
 
 from app import app
