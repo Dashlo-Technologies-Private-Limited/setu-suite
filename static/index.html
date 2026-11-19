@@ -335,6 +335,7 @@
       <button class="nav-btn" onclick="switchNavSection('tab-outward', this)" data-permission="OPERATE_FIELD_CONSUME">📤 5. Outward & POD</button>
       <button class="nav-btn" onclick="switchNavSection('tab-setu', this)" data-permission="VIEW_JIT_OPTIMIZATION">⚡ 6. JIT & Hackathon KPIs</button>
       <button class="nav-btn" onclick="switchNavSection('tab-audit', this)" data-permission="VIEW_AUDIT_LEDGER">📜 7. Audit Trail & Pipeline</button>
+      <button class="nav-btn" onclick="switchNavSection('tab-mdm', this)">🧠 8. MDM NLP &amp; Batch Hub</button>
     </nav>
 
     <div class="container">
@@ -711,6 +712,97 @@
         </div>
       </div>
 
+      <!-- ================= TAB 8: MDM NLP & BATCH INTELLIGENCE HUB ================= -->
+      <div id="tab-mdm" class="tab-pane">
+        <div class="panel" style="margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <div>
+              <div class="panel-title" style="color:var(--cyan-neon); margin-bottom:4px;">MDM Material Intelligence, Batch Segregation &amp; Universal Search</div>
+              <div id="mdm-status-text" style="font-size:0.78rem; color:var(--text-sub);">Loading MDM index...</div>
+            </div>
+            <div style="display:flex; gap:8px; flex:1; max-width:520px;">
+              <input id="mdm-u-q" placeholder="Universal Search: MDM code, SAP No, Part No, Short/Long text, Plant..." onkeydown="if(event.key==='Enter') mdmRunUniversal()" style="flex:1;" />
+              <button class="btn-action" onclick="mdmRunUniversal()">Search All</button>
+            </div>
+          </div>
+          <div id="mdm-kpis" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-top:14px;"></div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; border-top:1px solid var(--border-subtle); padding-top:12px;">
+            <button class="nav-btn active" onclick="mdmSwitchSub('search', this)">NLP Parameter Search</button>
+            <button class="nav-btn" onclick="mdmSwitchSub('similar', this)">Anomaly &amp; Similarity (&ge;75%)</button>
+            <button class="nav-btn" onclick="mdmSwitchSub('batches', this)">Batch Segregation (Elec / Mech)</button>
+            <button class="nav-btn" onclick="mdmSwitchSub('audit', this)">Duplicate &amp; Conflict Audit</button>
+            <button class="nav-btn" id="mdm-subbtn-universal" style="display:none;" onclick="mdmSwitchSub('universal', this)">Universal Results</button>
+          </div>
+        </div>
+
+        <div id="mdm-sub-search" class="panel">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; align-items:end; margin-bottom:12px;">
+            <div style="grid-column:span 2;"><label style="font-size:0.72rem; color:var(--text-sub);">Short / Long Text Query</label><input id="mdm-s-q" placeholder="e.g. SKF 6205 2RS BEARING or MCCB 250A 415V" onkeydown="if(event.key==='Enter') mdmRunSearch()" /></div>
+            <div><label style="font-size:0.72rem; color:var(--text-sub);">Must-Include Tokens</label><input id="mdm-s-must" placeholder="e.g. 250A, 415V" onkeydown="if(event.key==='Enter') mdmRunSearch()" /></div>
+            <div><label style="font-size:0.72rem; color:var(--text-sub);">Plant</label><input id="mdm-s-plant" placeholder="e.g. CLZS" /></div>
+            <div><label style="font-size:0.72rem; color:var(--text-sub);">UOM</label><select id="mdm-s-uom"><option value="">All UOMs</option></select></div>
+            <div style="display:flex; gap:6px;"><button class="btn-action" onclick="mdmRunSearch()" style="flex:1;">Search</button><button class="btn-action" style="background:var(--bg-surface-elevated); color:var(--text-main);" onclick="mdmExportSearch()">CSV</button></div>
+          </div>
+          <div id="mdm-s-meta" style="font-size:0.78rem; color:var(--text-sub); margin-bottom:8px;">Enter parameters above to search all unique codes.</div>
+          <div class="table-responsive" style="max-height:500px;"><table id="mdm-s-table"><thead></thead><tbody></tbody></table></div>
+        </div>
+
+        <div id="mdm-sub-similar" class="panel" style="display:none;">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; align-items:end; margin-bottom:12px;">
+            <div style="grid-column:span 2;"><label style="font-size:0.72rem; color:var(--text-sub);">Filter Code, PN, or Text</label><input id="mdm-sim-q" placeholder="e.g. VALVE, 1205863" onkeydown="if(event.key==='Enter'){mdmSimPage=0;mdmLoadSimilar();}" /></div>
+            <div><label style="font-size:0.72rem; color:var(--text-sub);">Anomaly Type</label><select id="mdm-sim-type" onchange="mdmSimPage=0;mdmLoadSimilar()"><option value="ALL">All Anomalies</option><option value="TRUE_EXACT_DUPLICATE">True Exact Duplicate</option><option value="JUMBLED_PARAMETERS">Jumbled Parameters</option><option value="SAME_PN_SUBSET_SPECS">Same PN (More/Fewer Specs)</option><option value="PART_NO_CONFLICT">Part No Conflict</option><option value="HIGH_TEXT_SIMILARITY">High Text Similarity</option></select></div>
+            <div><label style="font-size:0.72rem; color:var(--text-sub);">Min Token Overlap %</label><input id="mdm-sim-ov" type="number" value="0" min="0" max="100" /></div>
+            <div><label style="font-size:0.72rem; color:var(--text-sub);">Min Containment %</label><input id="mdm-sim-ct" type="number" value="0" min="0" max="100" /></div>
+            <div><label style="font-size:0.72rem; color:var(--text-sub);">UOM Filter</label><select id="mdm-sim-uom"><option value="false">Any UOM</option><option value="true">Same UOM Only</option></select></div>
+            <div style="display:flex; gap:6px;"><button class="btn-action" onclick="mdmSimPage=0;mdmLoadSimilar()" style="flex:1;">Apply</button><button class="btn-action" style="background:var(--bg-surface-elevated); color:var(--text-main);" onclick="mdmExportSimilar()">CSV</button></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span id="mdm-sim-meta" style="font-size:0.78rem; color:var(--text-sub);">Loading...</span>
+            <div style="display:flex; gap:6px;"><button class="btn-action" style="padding:4px 10px;" onclick="if(mdmSimPage>0){mdmSimPage--;mdmLoadSimilar();}">&larr; Prev</button><button class="btn-action" style="padding:4px 10px;" onclick="mdmSimPage++;mdmLoadSimilar();">Next &rarr;</button></div>
+          </div>
+          <div class="table-responsive" style="max-height:500px;"><table id="mdm-sim-table"><thead></thead><tbody></tbody></table></div>
+        </div>
+
+        <div id="mdm-sub-batches" class="panel" style="display:none;">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; align-items:end; margin-bottom:10px;">
+            <div><label style="font-size:0.72rem; color:var(--text-sub);">Discipline</label><select id="mdm-b-disc" onchange="mdmOnDiscChange()"><option value="ALL">All Disciplines</option></select></div>
+            <div><label style="font-size:0.72rem; color:var(--text-sub);">Material Sub-Type</label><select id="mdm-b-sub" onchange="mdmBatchPage=0;mdmLoadBatches()"><option value="ALL">All Sub-Types</option></select></div>
+            <div style="grid-column:span 2;"><label style="font-size:0.72rem; color:var(--text-sub);">Filter Inside Batch</label><input id="mdm-b-q" placeholder="Filter by code, short/long text, or plant..." onkeydown="if(event.key==='Enter'){mdmBatchPage=0;mdmLoadBatches();}" /></div>
+            <div style="display:flex; gap:6px;"><button class="btn-action" onclick="mdmBatchPage=0;mdmLoadBatches()" style="flex:1;">Load</button><button class="btn-action" style="background:var(--bg-surface-elevated); color:var(--text-main);" onclick="mdmExportBatches()">CSV</button></div>
+          </div>
+          <div id="mdm-batch-chips" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;"></div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span id="mdm-b-meta" style="font-size:0.78rem; color:var(--text-sub);">Select a batch above.</span>
+            <div style="display:flex; gap:6px;"><button class="btn-action" style="padding:4px 10px;" onclick="if(mdmBatchPage>0){mdmBatchPage--;mdmLoadBatches();}">&larr; Prev</button><button class="btn-action" style="padding:4px 10px;" onclick="mdmBatchPage++;mdmLoadBatches();">Next &rarr;</button></div>
+          </div>
+          <div class="table-responsive" style="max-height:500px;"><table id="mdm-b-table"><thead></thead><tbody></tbody></table></div>
+        </div>
+
+        <div id="mdm-sub-audit" class="panel" style="display:none;">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; align-items:end; margin-bottom:12px;">
+            <div><label style="font-size:0.72rem; color:var(--text-sub);">Audit Segment</label><select id="mdm-a-kind" onchange="mdmAuditPage=0;mdmLoadAudit()"><option value="conflicts">Master-Data Conflicts (SAP/Desc/UOM)</option><option value="same_plant">Same-Plant Duplicates</option><option value="missing">Missing Corporate MDM Code</option></select></div>
+            <div style="grid-column:span 2;"><label style="font-size:0.72rem; color:var(--text-sub);">Filter Text</label><input id="mdm-a-q" placeholder="Filter by code, plant, or description..." onkeydown="if(event.key==='Enter'){mdmAuditPage=0;mdmLoadAudit();}" /></div>
+            <div><button class="btn-action" onclick="mdmAuditPage=0;mdmLoadAudit()" style="width:100%;">Load</button></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span id="mdm-a-meta" style="font-size:0.78rem; color:var(--text-sub);">Select an audit segment above.</span>
+            <div style="display:flex; gap:6px;"><button class="btn-action" style="padding:4px 10px;" onclick="if(mdmAuditPage>0){mdmAuditPage--;mdmLoadAudit();}">&larr; Prev</button><button class="btn-action" style="padding:4px 10px;" onclick="mdmAuditPage++;mdmLoadAudit();">Next &rarr;</button></div>
+          </div>
+          <div class="table-responsive" style="max-height:500px;"><table id="mdm-a-table"><thead></thead><tbody></tbody></table></div>
+        </div>
+
+        <div id="mdm-sub-universal" class="panel" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <span id="mdm-u-meta" style="font-size:0.8rem; color:var(--cyan-neon);">Universal Search Results</span>
+            <button class="btn-action" onclick="mdmExportUniversal()">Export Master Hits CSV</button>
+          </div>
+          <div class="panel-title" style="font-size:0.85rem;">Unique Master Matches</div>
+          <div class="table-responsive" style="max-height:320px; margin-bottom:14px;"><table id="mdm-u-master-table"><thead></thead><tbody></tbody></table></div>
+          <div class="panel-title" style="font-size:0.85rem;">Similarity &amp; Anomaly Pair Matches</div>
+          <div class="table-responsive" style="max-height:300px;"><table id="mdm-u-sim-table"><thead></thead><tbody></tbody></table></div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -939,6 +1031,7 @@
         loadAnalyticsData();
       }
       if (tabId === 'tab-outward') setTimeout(initSignatureCanvas, 50);
+      if (tabId === 'tab-mdm' && !window._mdmLoaded) { window._mdmLoaded = true; mdmInit(); }
     }
 
     // ================= 1. PLANT INVENTORY DIGITAL TWIN & STO =================
@@ -1777,6 +1870,129 @@
 
     function closeBomModal() {
       document.getElementById("bomModal").style.display = "none";
+    }
+  </script>
+
+  <script>
+    let mdmSimPage = 0, mdmBatchPage = 0, mdmAuditPage = 0, mdmBatchCounts = {};
+    const MDM_PAGE = 150;
+    const mdmFmt = n => Number(n || 0).toLocaleString('en-IN');
+
+    function mdmSwitchSub(name, btn) {
+      document.querySelectorAll('[id^="mdm-sub-"]').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('#tab-mdm .nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('mdm-sub-' + name).style.display = 'block';
+      if (btn) btn.classList.add('active');
+      if (name === 'similar' && !window._mdmSimInit) { window._mdmSimInit = true; mdmLoadSimilar(); }
+      if (name === 'batches' && !window._mdmBatchInit) { window._mdmBatchInit = true; mdmInitBatches(); }
+      if (name === 'audit' && !window._mdmAuditInit) { window._mdmAuditInit = true; mdmLoadAudit(); }
+    }
+
+    async function mdmInit() {
+      const k = await (await fetch('/api/mdm/kpis')).json();
+      document.getElementById('mdm-status-text').textContent = `Source: ${k.source_mode} • ${mdmFmt(k.unique_codes)} Unique Codes Indexed`;
+      document.getElementById('mdm-kpis').innerHTML = `
+        <div class="panel" style="padding:10px;margin:0;"><div style="font-size:0.7rem;color:var(--text-sub);">UNIQUE CODES</div><div style="font-size:1.25rem;font-weight:700;color:var(--emerald-neon);">${mdmFmt(k.unique_codes)}</div></div>
+        <div class="panel" style="padding:10px;margin:0;"><div style="font-size:0.7rem;color:var(--text-sub);">TOTAL VALID ROWS</div><div style="font-size:1.25rem;font-weight:700;color:var(--cyan-neon);">${mdmFmt(k.total_valid_rows)}</div></div>
+        <div class="panel" style="padding:10px;margin:0;"><div style="font-size:0.7rem;color:var(--text-sub);">ANOMALY PAIRS</div><div style="font-size:1.25rem;font-weight:700;color:var(--cyan-neon);">${mdmFmt(k.similar_pairs)}</div></div>
+        <div class="panel" style="padding:10px;margin:0;"><div style="font-size:0.7rem;color:var(--text-sub);">SAME-PLANT DUPS</div><div style="font-size:1.25rem;font-weight:700;color:var(--amber-neon);">${mdmFmt(k.same_plant_dups)}</div></div>
+        <div class="panel" style="padding:10px;margin:0;"><div style="font-size:0.7rem;color:var(--text-sub);">MASTER CONFLICTS</div><div style="font-size:1.25rem;font-weight:700;color:var(--amber-neon);">${mdmFmt(k.master_conflicts)}</div></div>
+        <div class="panel" style="padding:10px;margin:0;"><div style="font-size:0.7rem;color:var(--text-sub);">MISSING CODE</div><div style="font-size:1.25rem;font-weight:700;color:var(--amber-neon);">${mdmFmt(k.missing_codes)}</div></div>`;
+      const uomSel = document.getElementById('mdm-s-uom');
+      (k.uoms || []).forEach(u => { const o = document.createElement('option'); o.value = u; o.textContent = u; uomSel.appendChild(o); });
+    }
+
+    function mdmRenderTable(id, rows) {
+      const thead = document.querySelector(`#${id} thead`), tbody = document.querySelector(`#${id} tbody`);
+      if (!rows || !rows.length) { thead.innerHTML = ''; tbody.innerHTML = '<tr><td style="padding:14px;color:var(--text-sub);">No matching rows found.</td></tr>'; return; }
+      const cols = Object.keys(rows[0]);
+      thead.innerHTML = '<tr>' + cols.map(c => `<th>${c.replace(/_/g, ' ')}</th>`).join('') + '</tr>';
+      tbody.innerHTML = rows.map(r => '<tr>' + cols.map(c => {
+        const v = r[c] ?? '';
+        if (c.includes('_pct')) return `<td><span style="color:var(--cyan-neon);font-weight:700;">${v}%</span></td>`;
+        if (c.toLowerCase().includes('long')) return `<td style="max-width:300px;font-size:0.75rem;">${String(v).slice(0, 200)}</td>`;
+        return `<td>${v}</td>`;
+      }).join('') + '</tr>').join('');
+    }
+
+    async function mdmRunSearch() {
+      const p = new URLSearchParams({ q: document.getElementById('mdm-s-q').value, must: document.getElementById('mdm-s-must').value, plant: document.getElementById('mdm-s-plant').value, uom: document.getElementById('mdm-s-uom').value, top_n: '100' });
+      const data = await (await fetch('/api/mdm/search?' + p.toString())).json();
+      document.getElementById('mdm-s-meta').textContent = `Showing top ${mdmFmt(data.count)} unique codes`;
+      mdmRenderTable('mdm-s-table', data.results);
+    }
+    function mdmExportSearch() {
+      const p = new URLSearchParams({ q: document.getElementById('mdm-s-q').value, must: document.getElementById('mdm-s-must').value, plant: document.getElementById('mdm-s-plant').value, uom: document.getElementById('mdm-s-uom').value });
+      window.location.href = '/api/mdm/search/export?' + p.toString();
+    }
+
+    function mdmSimParams(limit, offset) {
+      return new URLSearchParams({ q: document.getElementById('mdm-sim-q').value, anomaly_type: document.getElementById('mdm-sim-type').value, min_ov: document.getElementById('mdm-sim-ov').value || '0', min_ct: document.getElementById('mdm-sim-ct').value || '0', same_uom: document.getElementById('mdm-sim-uom').value, limit: String(limit), offset: String(offset) });
+    }
+    async function mdmLoadSimilar() {
+      const offset = mdmSimPage * MDM_PAGE;
+      const data = await (await fetch('/api/mdm/similar?' + mdmSimParams(MDM_PAGE, offset).toString())).json();
+      if (data.results.length === 0 && mdmSimPage > 0) { mdmSimPage--; return; }
+      document.getElementById('mdm-sim-meta').textContent = `${mdmFmt(data.total_matching)} matching pairs (showing ${data.total_matching ? offset + 1 : 0}-${mdmFmt(offset + data.results.length)})`;
+      mdmRenderTable('mdm-sim-table', data.results);
+    }
+    function mdmExportSimilar() { window.location.href = '/api/mdm/similar/export?' + mdmSimParams(100000, 0).toString(); }
+
+    async function mdmInitBatches() {
+      const data = await (await fetch('/api/mdm/batches/summary')).json();
+      mdmBatchCounts = data.subtypes_by_discipline || {};
+      const sel = document.getElementById('mdm-b-disc');
+      Object.entries(data.disciplines || {}).forEach(([d, c]) => { const o = document.createElement('option'); o.value = d; o.textContent = `${d} (${mdmFmt(c)})`; sel.appendChild(o); });
+      mdmOnDiscChange();
+    }
+    function mdmOnDiscChange() {
+      const d = document.getElementById('mdm-b-disc').value, subSel = document.getElementById('mdm-b-sub');
+      subSel.innerHTML = '<option value="ALL">All Sub-Types</option>';
+      const list = d === 'ALL' ? Object.entries(mdmBatchCounts).flatMap(([dn, obj]) => Object.entries(obj).map(([s, c]) => [s, c, dn])) : Object.entries(mdmBatchCounts[d] || {}).map(([s, c]) => [s, c, d]);
+      const chips = [];
+      list.sort((a,b) => b[1]-a[1]).forEach(([s, c, dn]) => {
+        const o = document.createElement('option'); o.value = s; o.textContent = `${s} (${mdmFmt(c)})`; subSel.appendChild(o);
+        chips.push(`<button class="nav-btn" style="padding:4px 10px;font-size:0.72rem;" onclick="mdmPickChip('${dn}','${s}')">${s}: ${mdmFmt(c)}</button>`);
+      });
+      document.getElementById('mdm-batch-chips').innerHTML = chips.slice(0, 18).join('');
+      mdmBatchPage = 0; mdmLoadBatches();
+    }
+    function mdmPickChip(d, s) { document.getElementById('mdm-b-disc').value = d; mdmOnDiscChange(); document.getElementById('mdm-b-sub').value = s; mdmBatchPage = 0; mdmLoadBatches(); }
+    async function mdmLoadBatches() {
+      const offset = mdmBatchPage * MDM_PAGE;
+      const p = new URLSearchParams({ discipline: document.getElementById('mdm-b-disc').value, subtype: document.getElementById('mdm-b-sub').value, q: document.getElementById('mdm-b-q').value, limit: String(MDM_PAGE), offset: String(offset) });
+      const data = await (await fetch('/api/mdm/batches?' + p.toString())).json();
+      if (data.results.length === 0 && mdmBatchPage > 0) { mdmBatchPage--; return; }
+      document.getElementById('mdm-b-meta').textContent = `${mdmFmt(data.total)} items in batch (showing ${data.total ? offset + 1 : 0}-${mdmFmt(offset + data.results.length)})`;
+      mdmRenderTable('mdm-b-table', data.results);
+    }
+    function mdmExportBatches() {
+      const p = new URLSearchParams({ discipline: document.getElementById('mdm-b-disc').value, subtype: document.getElementById('mdm-b-sub').value, q: document.getElementById('mdm-b-q').value });
+      window.location.href = '/api/mdm/batches/export?' + p.toString();
+    }
+
+    async function mdmLoadAudit() {
+      const kind = document.getElementById('mdm-a-kind').value, q = document.getElementById('mdm-a-q').value, offset = mdmAuditPage * MDM_PAGE;
+      const data = await (await fetch(`/api/mdm/audit/${kind}?q=${encodeURIComponent(q)}&limit=${MDM_PAGE}&offset=${offset}`)).json();
+      if (data.results.length === 0 && mdmAuditPage > 0) { mdmAuditPage--; return; }
+      document.getElementById('mdm-a-meta').textContent = `${mdmFmt(data.total)} rows (showing ${data.total ? offset + 1 : 0}-${mdmFmt(offset + data.results.length)})`;
+      mdmRenderTable('mdm-a-table', data.results);
+    }
+
+    async function mdmRunUniversal() {
+      const q = document.getElementById('mdm-u-q').value.trim();
+      if (!q) return;
+      const btn = document.getElementById('mdm-subbtn-universal');
+      btn.style.display = 'inline-block';
+      mdmSwitchSub('universal', btn);
+      const data = await (await fetch(`/api/mdm/universal?q=${encodeURIComponent(q)}`)).json();
+      document.getElementById('mdm-u-meta').textContent = `Universal Search "${q}": ${mdmFmt(data.master_total)} unique codes matched, ${mdmFmt(data.sim_total)} similarity pairs matched`;
+      mdmRenderTable('mdm-u-master-table', data.master_results);
+      mdmRenderTable('mdm-u-sim-table', data.sim_results);
+    }
+    function mdmExportUniversal() {
+      const q = document.getElementById('mdm-u-q').value.trim();
+      if (q) window.location.href = `/api/mdm/universal/export?q=${encodeURIComponent(q)}`;
     }
   </script>
 </body>

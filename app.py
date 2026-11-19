@@ -15,7 +15,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 
+from mdm_engine import mdm_router
+
 app = FastAPI(title="Project SETU & NETRA - HZL AI Hackathon 2026")
+app.include_router(mdm_router)
 
 app.add_middleware(
     CORSMiddleware,
